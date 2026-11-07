@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Little by Little — Habit Tracker</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20302b;
+      --muted: #718079;
+      --green: #2f7259;
+      --blue: #2d6cdf;
+      --line: #e4ebe6;
+      --white: #fff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 48px 20px;
+      background: #f7f8f5;
+      color: var(--ink);
+      font: 16px/1.5 system-ui, sans-serif;
+    }
+
+    main { max-width: 680px; margin: auto; }
+    header { margin-bottom: 24px; }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 8px 0; font-size: clamp(2rem, 6vw, 3rem); }
+    header p { margin: 0; color: var(--muted); }
+
+    .summary, .habit, .add-form, .plan-card, .shop-card, .redemption {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 18px 20px;
+    }
+
+    .stat strong { display: block; font-size: 1.2rem; }
+    .stat span, .habit-meta { color: var(--muted); font-size: .9rem; }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 14px;
+      border: 0;
+      border-bottom: 3px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .tab[aria-selected="true"] {
+      border-bottom-color: var(--blue);
+      color: var(--blue);
+    }
+
+    .habit-list { display: grid; gap: 12px; }
+
+    .habit {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+    }
+
+    .habit input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      accent-color: var(--green);
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+
+    .habit input[type="checkbox"]:disabled { cursor: default; }
+    .habit-info { flex: 1; min-width: 0; }
+    .habit-name { font-weight: 650; overflow-wrap: anywhere; }
+    .done .habit-name { color: var(--muted); text-decoration: line-through; }
+
+    .delete {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 6px;
+    }
+
+    .delete:hover { color: #a33; }
+
+    .add-form, .shop-form {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .add-form { margin-top: 20px; }
+
+    .add-form input, .shop-form select {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 10px;
+      background: var(--white);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .action {
+      border: 0;
+      border-radius: 15px;
+      background: var(--green);
+      color: white;
+      font: inherit;
+      font-weight: 650;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+
+    .action:hover:not(:disabled) { background: #245c47; }
+    .action:disabled { opacity: .5; cursor: not-allowed; }
+
+    .plan-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 16px;
+      padding: 16px;
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 28px 12px;
+    }
+
+    .shop-card { padding: 20px; }
+    .shop-card h2 { margin: 0; font-size: 1.35rem; }
+    .shop-card p { color: var(--muted); }
+    .shop-form { padding: 0; }
+    .shop-status { min-height: 1.5em; margin-bottom: 0; }
+
+    .redemption-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .redemption {
+      padding: 12px 16px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 28px 16px; }
+      .summary { grid-template-columns: 1fr; gap: 10px; }
+      .add-form, .shop-form { flex-direction: column; }
+      .plan-card { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">Small steps, steady progress</div>
+      <h1>Little by Little</h1>
+      <p>Build habits, keep your streak, and earn Habit Stars.</p>
+    </header>
+
+    <section class="summary" aria-live="polite">
+      <div class="stat">
+        <strong id="progress">0 of 0 habits done today</strong>
+        <span id="today"></span>
+      </div>
+      <div class="stat">
+        <strong id="stars">0 Habit Stars</strong>
+        <span>Available to spend</span>
+      </div>
+      <div class="stat">
+        <strong id="dailyStreak">0 days</strong>
+        <span>Daily streak</span>
+      </div>
+    </section>
+
+    <nav class="tabs" role="tablist" aria-label="App sections">
+      <button class="tab" id="habitsTab" role="tab" aria-selected="true" aria-controls="habitsPanel">
+        Habits
+      </button>
+      <button class="tab" id="shopTab" role="tab" aria-selected="false" aria-controls="shopPanel" tabindex="-1">
+        Rewards Shop
+      </button>
+    </nav>
+
+    <section id="habitsPanel" role="tabpanel" aria-labelledby="habitsTab">
+      <div id="habitList" class="habit-list" aria-label="Your habits"></div>
+
+      <form id="addForm" class="add-form">
+        <input id="habitInput" type="text" maxlength="60"
+               placeholder="Add a habit, e.g. Read for 10 minutes"
+               aria-label="New habit" required />
+        <button id="addButton" class="action" type="submit">
+          Add habit (+5 stars)
+        </button>
+      </form>
+
+      <section class="plan-card" aria-live="polite">
+        <div>
+          <strong id="planName">Free plan</strong>
+          <div id="habitLimit" class="habit-meta"></div>
+        </div>
+        <button id="upgradeButton" class="action" type="button">
+          Upgrade to Plus (demo)
+        </button>
+      </section>
+      <p id="limitMessage" class="habit-meta" aria-live="polite"></p>
+    </section>
+
+    <section id="shopPanel" role="tabpanel" aria-labelledby="shopTab" hidden>
+      <div class="shop-card">
+        <h2>Habit Star Shop</h2>
+        <p>Redeem 10,000 Habit Stars for a simulated $10 gift card.</p>
+
+        <form id="shopForm" class="shop-form">
+          <select id="storeInput" aria-label="Choose a gift card store" required>
+            <option value="">Choose a store</option>
+            <option value="Amazon">Amazon</option>
+            <option value="Target">Target</option>
+            <option value="Walmart">Walmart</option>
+            <option value="Starbucks">Starbucks</option>
+            <option value="Apple">Apple</option>
+            <option value="Best Buy">Best Buy</option>
+            <option value="Giant">Giant</option>
+          </select>
+          <button id="redeemButton" class="action" type="submit">
+            Redeem 10,000 stars
+          </button>
+        </form>
+
+        <p id="shopStatus" class="shop-status" aria-live="polite"></p>
+        <div id="redemptionList" class="redemption-list" aria-label="Redemption history"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "little-by-little-habits";
+    const ADD_HABIT_STARS = 5;
+    const BASE_COMPLETION_STARS = 10;
+    const STREAK_BONUS = 0.25;
+    const GIFT_CARD_COST = 10000;
+    const FREE_HABIT_LIMIT = 10;
+    const PLUS_HABIT_LIMIT = 25;
+
+    const list = document.querySelector("#habitList");
+    const addForm = document.querySelector("#addForm");
+    const habitInput = document.querySelector("#habitInput");
+    const addButton = document.querySelector("#addButton");
+    const upgradeButton = document.querySelector("#upgradeButton");
+    const limitMessage = document.querySelector("#limitMessage");
+    const shopForm = document.querySelector("#shopForm");
+    const storeInput = document.querySelector("#storeInput");
+    const redeemButton = document.querySelector("#redeemButton");
+    const shopStatus = document.querySelector("#shopStatus");
+    const redemptionList = document.querySelector("#redemptionList");
+
+    const tabs = [
+      {
+        button: document.querySelector("#habitsTab"),
+        panel: document.querySelector("#habitsPanel")
+      },
+      {
+        button: document.querySelector("#shopTab"),
+        panel: document.querySelector("#shopPanel")
+      }
+    ];
+
+    function selectTab(selectedTab) {
+      for (const tab of tabs) {
+        const selected = tab === selectedTab;
+        tab.button.setAttribute("aria-selected", String(selected));
+        tab.button.tabIndex = selected ? 0 : -1;
+        tab.panel.hidden = !selected;
+      }
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.button.addEventListener("click", () => selectTab(tab));
+      tab.button.addEventListener("keydown", event => {
+        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+        event.preventDefault();
+
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const next = tabs[(index + direction + tabs.length) % tabs.length];
+        selectTab(next);
+        next.button.focus();
+      });
+    });
+
+    function todayKey(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function loadData() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+
+        if (Array.isArray(saved)) {
+          return {
+            stars: 0,
+            habits: saved,
+            redemptions: [],
+            isPlus: false
+          };
+        }
+
+        if (saved && Array.isArray(saved.habits)) {
+          return {
+            stars: Number.isFinite(saved.stars)
+              ? saved.stars
+              : (Number.isFinite(saved.points) ? saved.points : 0),
+            habits: saved.habits,
+            redemptions: Array.isArray(saved.redemptions)
+              ? saved.redemptions
+              : [],
+            isPlus: Boolean(saved.isPlus)
+          };
+        }
+      } catch {
+        // Start fresh if saved data is unreadable.
+      }
+
+      return { stars: 0, habits: [], redemptions: [], isPlus: false };
+    }
+
+    const data = loadData();
+    let stars = data.stars;
+    let habits = data.habits;
+    let redemptions = data.redemptions;
+    let isPlus = data.isPlus;
+
+    function getHabitLimit() {
+      return isPlus ? PLUS_HABIT_LIMIT : FREE_HABIT_LIMIT;
+    }
+
+    function save() {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ stars, habits, redemptions, isPlus })
+      );
+    }
+
+    function isDone(habit, dateKey) {
+      return Boolean(habit.completed?.[dateKey]);
+    }
+
+    function getHabitStreak(habit) {
+      const date = new Date();
+
+      if (!isDone(habit, todayKey(date))) {
+        date.setDate(date.getDate() - 1);
+      }
+
+      let streak = 0;
+      while (isDone(habit, todayKey(date))) {
+        streak++;
+        date.setDate(date.getDate() - 1);
+      }
+      return streak;
+    }
+
+    function getDailyStreak() {
+      const completedDates = new Set();
+
+      for (const habit of habits) {
+        for (const [dateKey, completion] of Object.entries(habit.completed || {})) {
+          if (completion) completedDates.add(dateKey);
+        }
+      }
+
+      const date = new Date();
+      if (!completedDates.has(todayKey(date))) {
+        date.setDate(date.getDate() - 1);
+      }
+
+      let streak = 0;
+      while (completedDates.has(todayKey(date))) {
+        streak++;
+        date.setDate(date.getDate() - 1);
+      }
+      return streak;
+    }
+
+    function renderRedemptions() {
+      redemptionList.replaceChildren();
+
+      for (const redemption of [...redemptions].reverse()) {
+        const item = document.createElement("div");
+        item.className = "redemption";
+        item.textContent = `Simulated $10 ${redemption.store} gift card · ${redemption.date}`;
+        redemptionList.append(item);
+      }
+    }
+
+    function render() {
+      list.replaceChildren();
+
+      const completedToday = habits.filter(
+        habit => isDone(habit, todayKey())
+      ).length;
+
+      document.querySelector("#progress").textContent =
+        `${completedToday} of ${habits.length} habits done today`;
+
+      document.querySelector("#today").textContent =
+        new Intl.DateTimeFormat(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric"
+        }).format(new Date());
+
+      document.querySelector("#stars").textContent =
+        `${stars} Habit Star${stars === 1 ? "" : "s"}`;
+
+      const dailyStreak = getDailyStreak();
+      document.querySelector("#dailyStreak").textContent =
+        `${dailyStreak} day${dailyStreak === 1 ? "" : "s"}`;
+
+      const limit = getHabitLimit();
+      const atLimit = habits.length >= limit;
+
+      document.querySelector("#planName").textContent =
+        isPlus ? "Plus plan" : "Free plan";
+      document.querySelector("#habitLimit").textContent =
+        `${habits.length} of ${limit} habits used`;
+      upgradeButton.hidden = isPlus;
+      addButton.disabled = atLimit;
+
+      limitMessage.textContent = atLimit
+        ? isPlus
+          ? "You’ve reached the 25-habit Plus limit."
+          : "You’ve reached the 10-habit Free limit. Upgrade to Plus for up to 25 habits."
+        : "";
+
+      redeemButton.disabled = stars < GIFT_CARD_COST;
+
+      if (habits.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty";
+        empty.textContent =
+          "No habits yet. Add one small thing you’d like to do regularly.";
+        list.append(empty);
+      }
+
+      for (const habit of habits) {
+        const done = isDone(habit, todayKey());
+        const card = document.createElement("article");
+        card.className = `habit${done ? " done" : ""}`;
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = done;
+        checkbox.disabled = done;
+        checkbox.setAttribute("aria-label", `Mark ${habit.name} done today`);
+
+        checkbox.addEventListener("change", () => {
+          if (!checkbox.checked || isDone(habit, todayKey())) return;
+
+          const streak = getHabitStreak(habit) + 1;
+          const multiplier = 1 + (streak - 1) * STREAK_BONUS;
+          const earned = Math.round(BASE_COMPLETION_STARS * multiplier);
+
+          habit.completed ||= {};
+          habit.completed[todayKey()] = true;
+          stars += earned;
+
+          save();
+          render();
+        });
+
+        const info = document.createElement("div");
+        info.className = "habit-info";
+
+        const name = document.createElement("div");
+        name.className = "habit-name";
+        name.textContent = habit.name;
+
+        const meta = document.createElement("div");
+        meta.className = "habit-meta";
+        const streak = getHabitStreak(habit);
+        meta.textContent =
+          `${streak} day${streak === 1 ? "" : "s"} in a row · ` +
+          `${BASE_COMPLETION_STARS} base stars + streak bonus`;
+
+        const remove = document.createElement("button");
+        remove.className = "delete";
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.setAttribute("aria-label", `Delete ${habit.name}`);
+        remove.addEventListener("click", () => {
+          habits = habits.filter(item => item.id !== habit.id);
+          save();
+          render();
+        });
+
+        info.append(name, meta);
+        card.append(checkbox, info, remove);
+        list.append(card);
+      }
+
+      renderRedemptions();
+    }
+
+    addForm.addEventListener("submit", event => {
+      event.preventDefault();
+      const name = habitInput.value.trim();
+      if (!name) return;
+
+      if (habits.length >= getHabitLimit()) {
+        render();
+        return;
+      }
+
+      habits.push({
+        id: crypto.randomUUID(),
+        name,
+        completed: {}
+      });
+
+      stars += ADD_HABIT_STARS;
+      habitInput.value = "";
+      save();
+      render();
+      habitInput.focus();
+    });
+
+    upgradeButton.addEventListener("click", () => {
+      isPlus = true;
+      save();
+      render();
+    });
+
+    shopForm.addEventListener("submit", event => {
+      event.preventDefault();
+      const store = storeInput.value;
+
+      if (!store) {
+        shopStatus.textContent = "Choose a store first.";
+        return;
+      }
+
+      if (stars < GIFT_CARD_COST) {
+        shopStatus.textContent =
+          `You need ${GIFT_CARD_COST - stars} more Habit Stars to redeem this reward.`;
+        return;
+      }
+
+      stars -= GIFT_CARD_COST;
+      redemptions.push({ store, date: todayKey() });
+
+      save();
+      render();
+      shopStatus.textContent =
+        `Redeemed 10,000 Habit Stars for a simulated $10 ${store} gift card.`;
+      storeInput.value = "";
+    });
+
+    render();
+  </script>
+</body>
+</html>
